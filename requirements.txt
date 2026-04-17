@@ -1,5 +1,6 @@
 streamlit
 pandas
 plotly
-st-pages # se estiver usando
+st-pages
 st-gsheets-connection
+statsmodels
