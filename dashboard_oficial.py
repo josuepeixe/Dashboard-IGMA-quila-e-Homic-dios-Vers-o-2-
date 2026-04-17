@@ -24,11 +24,29 @@ st.set_page_config(
 # ==========================================
 @st.cache_data(ttl=600) # ttl=600 faz o cache dos dados por 10 min. Assim não sobrecarrega a API do Google.
 def load_data():
-    # Cria a conexão usando as credenciais que configuramos nos secrets
     conn = st.connection("gsheets", type=GSheetsConnection)
-    
-    # Faz a leitura dos dados puxando do Google Sheets (Retorna um DataFrame do Pandas)
     df = conn.read()
+    
+    # --- ADICIONE ESTE BLOCO AQUI ---
+    # Dicionário mapeando as UFs para suas respectivas regiões
+    mapa_regioes = {
+        'Norte': ['AM', 'RR', 'AP', 'PA', 'TO', 'RO', 'AC'],
+        'Nordeste': ['MA', 'PI', 'CE', 'RN', 'PE', 'PB', 'SE', 'AL', 'BA'],
+        'Centro-Oeste': ['MT', 'MS', 'GO', 'DF'],
+        'Sudeste': ['SP', 'RJ', 'ES', 'MG'],
+        'Sul': ['PR', 'RS', 'SC']
+    }
+    
+    # Cria a coluna 'Regiao' mapeando os valores da coluna 'UF'
+    def pegar_regiao(uf):
+        for regiao, ufs in mapa_regioes.items():
+            if uf in ufs:
+                return regiao
+        return 'Outra'
+        
+    if 'UF' in df.columns and 'Regiao' not in df.columns:
+        df['Regiao'] = df['UF'].apply(pegar_regiao)
+    # ---------------------------------
     
     pilares = [
         'Governança, Eficiência Fiscal e Transparência', 
