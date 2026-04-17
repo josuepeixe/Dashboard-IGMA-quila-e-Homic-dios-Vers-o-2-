@@ -114,7 +114,7 @@ fig_scatter = go.Figure()
 if foco_regiao == "Todas as Regiões":
     fig_scatter = px.scatter(
         df_filtrado, x="IGMA", y="Taxa_Homicidios_100k", color="Regiao",
-        size="Populacao", hover_name="Cidade_UF", opacity=0.7,
+        size="Populacao", hover_name="Cidade", opacity=0.7,
         size_max=40, template="plotly_white", trendline="ols"
     )
 else:
@@ -130,7 +130,7 @@ else:
     fig_scatter.add_trace(go.Scatter(
         x=df_foco['IGMA'], y=df_foco['Taxa_Homicidios_100k'], mode='markers',
         marker=dict(color='#DC2626', size=df_foco['Populacao']/30000, sizemode='area', sizemin=5, line=dict(width=1, color='white')),
-        name=foco_regiao, text=df_foco['Cidade_UF'],
+        name=foco_regiao, text=df_foco['Cidade'],
         hovertemplate="<b>%{text}</b><br>IGMA: %{x:.2f}<br>Homicídios: %{y:.2f}<extra></extra>"
     ))
 
