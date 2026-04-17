@@ -203,13 +203,13 @@ st.header(f"🔎 Raio-X Municipal (Perfil de Gestão em {filtro_ano})")
 
 cidade_selecionada = st.selectbox(
     "Digite o nome da cidade para detalhar:",
-    options=sorted(df_filtrado['Cidade_UF'].unique()),
+    options=sorted(df_filtrado['Cidade'].unique()),
     index=None,
     placeholder="Ex: Fortaleza - CE"
 )
 
 if cidade_selecionada:
-    dados_cidade = df_filtrado[df_filtrado['Cidade_UF'] == cidade_selecionada].iloc[0]
+    dados_cidade = df_filtrado[df_filtrado['Cidade'] == cidade_selecionada].iloc[0]
     uf_cidade = dados_cidade['UF']
     media_estado = df_filtrado[df_filtrado['UF'] == uf_cidade].mean(numeric_only=True)
     
