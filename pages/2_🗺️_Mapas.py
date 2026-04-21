@@ -73,13 +73,13 @@ else:
                 st.markdown(f"#### {item['titulo']}")
                 
                 # Estilo para o fundo claro e bordas
-                estilo_div = 'background-color: #F8FAFC; padding: 15px; border-radius: 15px; border: 1px solid #E2E8F0; margin-bottom: 40px;'
-                estilo_iframe = 'width: 100%; border: none; background-color: white;'
+                estilo_div = 'background-color: #F8FAFC; padding: 25px; border-radius: 15px; border: 1px solid #E2E8F0; margin-bottom: 50px;'
+                estilo_iframe = 'width: 100%; border: none; background-color: white; border-radius: 10px;'
                 
-                tag_iframe = f'<iframe src="{url}" style="{estilo_iframe}" height="700" frameborder="0" scrolling="no" allowfullscreen="true"></iframe>'
+                tag_iframe = f'<iframe src="{url}" style="{estilo_iframe}" height="850" frameborder="0" scrolling="no" allowfullscreen="true"></iframe>'
                 html_final = f'<div style="{estilo_div}">{tag_iframe}</div>'
                 
-                components.html(html_final, height=760)
+                components.html(html_final, height=950)
             else:
                 # Opcional: mostrar aviso se o link ainda for "SEU_LINK_AQUI"
                 if "SEU_LINK" in str(url):
