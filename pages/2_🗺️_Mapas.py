@@ -46,10 +46,7 @@ with tab_geral:
                 # Altura aumentada para evitar cortes
                 estilo = 'background: #F8FAFC; padding: 20px; border-radius: 15px; border: 1px solid #E2E8F0; margin-bottom: 30px;'
                 iframe = f'<iframe src="{item["u"]}" width="100%" height="850" frameborder="0" scrolling="no" style="background: white;"></iframe>'
-                components.html(
-                        f'<div class="fade-in" style="{estilo}">{iframe}</div>',
-                        height=900
-                    )
+                components.html(f'<div style="{estilo}">{iframe}</div>', height=950)
 
 # --- ABA 2: COMPARADOR LADO A LADO ---
 with tab_comparador:
@@ -86,10 +83,7 @@ with tab_comparador:
         if isinstance(url_c, str) and url_c.startswith("http"):
             estilo_c = 'background: white; padding: 10px; border-radius: 10px; border: 1px solid #E2E8F0;'
             iframe_c = f'<iframe src="{url_c}" width="100%" height="850" frameborder="0" scrolling="no"></iframe>'
-            components.html(
-                    f'<div class="fade-in" style="{estilo}">{iframe}</div>',
-                    height=900
-                )
+            components.html(f'<div style="{estilo_c}">{iframe_c}</div>', height=900)
         else:
             st.warning("Mapa não configurado ou link inválido.")
 
