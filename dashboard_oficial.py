@@ -196,10 +196,17 @@ with m1: escopo = st.radio("Nível:", ["Brasil", "Estado"])
 with m2: uf_mapa = st.selectbox("UF:", sorted(df['UF'].unique())) if escopo == "Estado" else "Brasil"
 with m3: tema_mapa = st.radio("Tema:", ["Violência (Homicídios)", "Gestão Pública (IGMA)"], horizontal=True)
 with m4:
+    pilar_escolhido = None
     if tema_mapa == "Gestão Pública (IGMA)":
-        pilar = st.selectbox("Pilar:", ["IGMA Geral", "Desenvolvimento Socioeconômico e Ordem Pública"])
-    else:
-        pilar = None
+        pilar_escolhido = st.selectbox("Pilar:", [
+            "IGMA Geral", 
+            "Desenvolvimento Socioeconômico e Ordem Pública",
+            "Governança, Eficiência Fiscal e Transparência",
+            "Educação",
+            "Saúde e Bem-Estar",
+            "Infraestrutura e Mobilidade Urbana",
+            "Sustentabilidade"
+        ])
 
 # Busca URL com tratamento para evitar o erro TypeError
 url_mapa = ""
