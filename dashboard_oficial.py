@@ -189,81 +189,87 @@ st.markdown('</div><hr>', unsafe_allow_html=True)
 # ==========================================
 # 8. MAPAS
 # ==========================================
-st.markdown('<div class="fade-in">', unsafe_allow_html=True)
 st.subheader("🗺️ Panorama Geográfico")
 
-col_esc, col_uf, col_tema, col_pilar = st.columns([1, 1, 1.5, 1.5])
-with col_esc:
-    escopo = st.radio("Visão:", ["Brasil", "Por Estado"])
-with col_uf:
-    uf_mapa = st.selectbox("Estado:", sorted(df['UF'].unique())) if escopo == "Por Estado" else "Brasil"
-with col_tema:
-    tema_mapa = st.radio("Tema de Análise:", ["Violência (Homicídios)", "Gestão Pública (IGMA)"])
-with col_pilar:
+m1, m2, m3, m4 = st.columns([1, 1, 1.5, 1.5])
+with m1: escopo = st.radio("Nível:", ["Brasil", "Estado"])
+with m2: uf_mapa = st.selectbox("UF:", sorted(df['UF'].unique())) if escopo == "Estado" else "Brasil"
+with m3: tema_mapa = st.radio("Tema:", ["Violência (Homicídios)", "Gestão Pública (IGMA)"], horizontal=True)
+with m4:
     if tema_mapa == "Gestão Pública (IGMA)":
-        pilar_escolhido = st.selectbox("Pilar:", ["IGMA Geral", "Desenvolvimento Socioeconômico e Ordem Pública"])
+        pilar = st.selectbox("Pilar:", ["IGMA Geral", "Desenvolvimento Socioeconômico e Ordem Pública"])
     else:
-        st.write("") # Mantém o layout alinhado
+        pilar = None
 
-# Lógica Corrigida de URL (Buscando o Pilar corretamente)
+# Busca URL com tratamento para evitar o erro TypeError
 url = ""
 try:
+    dados_ano = LINKS_MAPAS.get(filtro_ano, {})
+    dados_local = dados_ano.get(uf_mapa, {})
+    
     if tema_mapa == "Violência (Homicídios)":
-        url = LINKS_MAPAS.get(filtro_ano, {}).get(uf_mapa, {}).get(tema_mapa, "")
+        url = dados_local.get(tema_mapa, "")
     else:
-        url = LINKS_MAPAS.get(filtro_ano, {}).get(uf_mapa, {}).get(tema_mapa, {}).get(pilar_escolhido, "")
+        url = dados_local.get(tema_mapa, {}).get(pilar, "")
 except Exception:
-    pass
+    url = ""
 
-# Trava de segurança: Garante que 'url' é um texto válido e não um dicionário
-if isinstance(url, str) and url.strip() and "SEU_LINK" not in url:
-    with st.spinner("Carregando mapa interativo..."):
-        components.iframe(url, height=700, scrolling=False)
+if isinstance(url, str) and url.startswith("http"):
+    components.iframe(url, height=800)
 else:
-    st.info(f"📍 O mapa detalhado para **{uf_mapa}** ainda não está configurado no dicionário.")
+    st.info(f"🔗 Mapa não configurado para {uf_mapa} / {tema_mapa}")
 
-st.markdown('</div><hr>', unsafe_allow_html=True)
+st.divider()
 
 # ==========================================
 # 9. RAIO-X MUNICIPAL (RADAR)
 # ==========================================
-st.markdown('<div class="fade-in">', unsafe_allow_html=True)
-st.subheader("🔎 Perfil de Gestão Municipal")
+st.subheader("🔎 Raio-X Municipal")
 
-cidade = st.selectbox("Pesquise a cidade:", sorted(df_filtrado['Cidade_Exibicao'].dropna().unique()), index=None, placeholder="Digite o nome do município...")
+cidade_sel = st.selectbox("Selecione a Cidade:", sorted(df_filtrado['Cidade_Exibicao'].unique()), index=None)
 
-if cidade:
-    dados = df_filtrado[df_filtrado['Cidade_Exibicao'] == cidade].iloc[0]
-    categorias_reais = [
-        'Governança, Eficiência Fiscal e Transparência', 'Educação',
-        'Saúde e Bem-Estar', 'Infraestrutura e Mobilidade Urbana',
-        'Sustentabilidade', 'Desenvolvimento Socioeconômico e Ordem Pública'
-    ]
-    labels_radar = ['Governança', 'Educação', 'Saúde', 'Infraestrutura', 'Sustent.', 'Desenv. Econ.']
+if cidade_sel:
+    dados_cid = df_filtrado[df_filtrado['Cidade_Exibicao'] == cidade_sel].iloc[0]
+    uf_cid = dados_cid['UF']
+    medias_uf = df_filtrado[df_filtrado['UF'] == uf_cid].mean(numeric_only=True)
 
-    fig_radar = go.Figure()
-    fig_radar.add_trace(go.Scatterpolar(
-        r=[dados.get(c, 0) for c in categorias_reais],
-        theta=labels_radar,
-        fill='toself',
-        name=cidade,
-        line_color='#10B981', # Verde esmeralda moderno
-        fillcolor='rgba(16, 185, 129, 0.4)'
-    ))
-
-    fig_radar.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        polar=dict(
-            radialaxis=dict(visible=True, range=[0, 100], gridcolor='#334155', tickfont=dict(color='#94A3B8')),
-            angularaxis=dict(gridcolor='#334155')
-        ),
-        margin=dict(t=30, b=30, l=40, r=40),
-        height=450
-    )
+    r1, r2 = st.columns([1.5, 1])
     
-    col_vazia_esq, col_grafico, col_vazia_dir = st.columns([1, 2, 1])
-    with col_grafico:
+    with r1:
+        st.write(f"**Teia de Desempenho: {cidade_sel}**")
+        pilares_radar = [
+            'Governança, Eficiência Fiscal e Transparência', 'Educação',
+            'Saúde e Bem-Estar', 'Infraestrutura e Mobilidade Urbana',
+            'Sustentabilidade', 'Desenvolvimento Socioeconômico e Ordem Pública'
+        ]
+        labels = ['Gov', 'Edu', 'Saúde', 'Infra', 'Sust', 'Desenv']
+        
+        fig_radar = go.Figure()
+        fig_radar.add_trace(go.Scatterpolar(
+            r=[dados_cid[p] for p in pilares_radar], theta=labels, fill='toself', name=dados_cid['Cidade'], line_color='#10B981'
+        ))
+        fig_radar.add_trace(go.Scatterpolar(
+            r=[medias_uf[p] for p in pilares_radar], theta=labels, name=f"Média {uf_cid}", line=dict(dash='dot'), line_color='white'
+        ))
+        fig_radar.update_layout(template="plotly_dark", polar=dict(radialaxis=dict(visible=True, range=[0, 100])), paper_bgcolor="rgba(0,0,0,0)")
         st.plotly_chart(fig_radar, use_container_width=True)
 
-st.markdown('</div>', unsafe_allow_html=True)
+    with r2:
+        st.write("**Comparativo Numérico**")
+        
+        # Métrica de Homicídios (Menor é melhor -> Delta Inverso)
+        delta_h = dados_cid['Taxa_Homicidios_100k'] - medias_uf['Taxa_Homicidios_100k']
+        st.metric("Taxa de Homicídios", f"{dados_cid['Taxa_Homicidios_100k']:.2f}", 
+                  delta=f"{delta_h:.2f} vs Estado", delta_color="inverse")
+        
+        # Métrica de IGMA (Maior é melhor)
+        delta_i = dados_cid['IGMA'] - medias_uf['IGMA']
+        st.metric("Nota IGMA", f"{dados_cid['IGMA']:.2f}", 
+                  delta=f"{delta_i:.2f} vs Estado")
+        
+        st.markdown(f"""
+        **Detalhes Adicionais:**
+        - **População:** {dados_cid['Populacao']:,.0f} hab.
+        - **Região:** {dados_cid['Regiao']}
+        - **Status IGMA:** {dados_cid['Class__IGMA']}
+        """)
