@@ -21,47 +21,103 @@ st.set_page_config(
 # ==========================================
 st.markdown("""
 <style>
-    /* Ajuste de espaçamento geral */
-    .block-container { padding-top: 1.5rem; }
-    
-    /* Título com Gradiente Moderno */
-    .gradient-text {
-        background: -webkit-linear-gradient(45deg, #3B82F6, #10B981);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 800;
-        font-size: 2.5rem;
-        margin-bottom: 0px;
-    }
 
-    /* Animações Suaves */
-    @keyframes fadeIn {
-        from {opacity: 0; transform: translateY(15px);}
-        to {opacity: 1; transform: translateY(0);}
-    }
-    .fade-in { animation: fadeIn 0.6s ease-out forwards; }
+/* ===== FUNDO GRADIENTE ===== */
+body {
+    background: radial-gradient(circle at top left, #0F172A, #020617);
+}
 
-    /* Cards de KPI (Estilo Vidro / Dark) */
-    .card {
-        background: linear-gradient(145deg, #1E293B, #0F172A);
-        border: 1px solid #334155;
-        padding: 20px;
-        border-radius: 16px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        text-align: center;
-    }
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
-        border-color: #3B82F6;
-    }
-    .kpi-title { font-size: 0.9rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; }
-    .kpi-value { font-size: 2rem; font-weight: 800; color: #F8FAFC; margin-top: 5px; }
+/* ===== ESPAÇAMENTO ===== */
+.block-container { padding-top: 1.5rem; }
 
-    /* Esconde botões padrões do Streamlit para visual mais limpo */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+/* ===== TÍTULO ===== */
+.gradient-text {
+    background: -webkit-linear-gradient(45deg, #3B82F6, #10B981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    font-size: 2.5rem;
+    letter-spacing: -1px;
+    line-height: 1.2;
+}
+
+/* ===== ANIMAÇÃO ===== */
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(15px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+.fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* Animação em cascata */
+.fade-in:nth-child(1) { animation-delay: 0.1s; }
+.fade-in:nth-child(2) { animation-delay: 0.2s; }
+.fade-in:nth-child(3) { animation-delay: 0.3s; }
+.fade-in:nth-child(4) { animation-delay: 0.4s; }
+
+/* ===== CARDS (GLASS + LINHA LATERAL) ===== */
+.card {
+    position: relative;
+    background: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+/* Linha lateral */
+.card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 15%;
+    height: 70%;
+    width: 4px;
+    background: linear-gradient(#3B82F6, #10B981);
+    border-radius: 4px;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
+}
+
+/* KPI */
+.kpi-title { font-size: 0.9rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; }
+.kpi-value { font-size: 2rem; font-weight: 800; color: #F8FAFC; margin-top: 5px; }
+
+/* ===== SIDEBAR ===== */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #020617, #0F172A);
+    border-right: 1px solid rgba(148,163,184,0.1);
+}
+
+/* ===== IFRAME MAPA ===== */
+iframe {
+    border-radius: 12px;
+    transition: transform 0.4s ease;
+}
+
+iframe:hover {
+    transform: scale(1.01);
+}
+
+/* ===== BOTÕES ===== */
+button:hover {
+    transform: scale(1.02);
+    transition: 0.2s;
+}
+
+/* ===== LIMPEZA ===== */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -156,7 +212,7 @@ c2.markdown(render_kpi("Média IGMA", f"{df_filtrado['IGMA'].mean():.2f}".replac
 c3.markdown(render_kpi("Taxa Homicídios", f"{df_filtrado['Taxa_Homicidios_100k'].mean():.2f}".replace(".", ",")), unsafe_allow_html=True)
 c4.markdown(render_kpi("População Afetada", f"{df_filtrado['Populacao'].sum():,.0f}".replace(",", ".")), unsafe_allow_html=True)
 
-st.markdown("<br><hr>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 
 # ==========================================
 # 7. GRÁFICO: DISPERSÃO
@@ -165,26 +221,34 @@ st.markdown('<div class="fade-in">', unsafe_allow_html=True)
 st.subheader(f"📈 IGMA vs Violência ({filtro_ano})")
 
 fig_scatter = px.scatter(
-    df_filtrado, x="IGMA", y="Taxa_Homicidios_100k", color="Regiao",
-    size="Populacao", hover_name="Cidade_Exibicao", opacity=0.9,
-    color_discrete_sequence=px.colors.qualitative.Set1, # Cores mais fortes e vibrantes
-    size_max=45 # Aumenta o tamanho máximo das bolinhas
+    df_filtrado,
+    x="IGMA",
+    y="Taxa_Homicidios_100k",
+    color="Regiao",
+    size="Populacao",
+    hover_name="Cidade_Exibicao",
+    opacity=0.75,
+    color_discrete_sequence=px.colors.qualitative.Set1,
+    size_max=45
 )
 
-# Adiciona um contorno branco/cinza nas bolinhas para dar destaque no fundo
-fig_scatter.update_traces(marker=dict(line=dict(width=1, color='#E2E8F0')))
+fig_scatter.update_traces(
+    marker=dict(
+        line=dict(width=1.2, color='rgba(255,255,255,0.3)')
+    )
+)
 
 fig_scatter.update_layout(
     template="plotly_dark",
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
-    xaxis_title="Nota IGMA",
-    yaxis_title="Homicídios (por 100k)",
+    xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
+    yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
     height=450,
     margin=dict(t=10, b=10, l=10, r=10)
 )
 st.plotly_chart(fig_scatter, use_container_width=True)
-st.markdown('</div><hr>', unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 
 # ==========================================
 # 8. MAPAS
@@ -229,6 +293,7 @@ else:
 
 st.divider()
 
+st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 # ==========================================
 # 9. RAIO-X MUNICIPAL (RADAR)
 # ==========================================
