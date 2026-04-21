@@ -202,22 +202,23 @@ with m4:
         pilar = None
 
 # Busca URL com tratamento para evitar o erro TypeError
-url = ""
+url_mapa = ""
 try:
-    dados_ano = LINKS_MAPAS.get(filtro_ano, {})
-    dados_local = dados_ano.get(uf_mapa, {})
-    
+    dados_local = LINKS_MAPAS.get(filtro_ano, {}).get(uf_mapa, {})
     if tema_mapa == "Violência (Homicídios)":
-        url = dados_local.get(tema_mapa, "")
+        url_mapa = dados_local.get(tema_mapa, "")
     else:
-        url = dados_local.get(tema_mapa, {}).get(pilar, "")
-except Exception:
-    url = ""
+        url_mapa = dados_local.get(tema_mapa, {}).get(pilar_escolhido, "")
+except:
+    url_mapa = ""
 
-if isinstance(url, str) and url.startswith("http"):
-    components.iframe(url, height=800)
+if isinstance(url_mapa, str) and url_mapa.startswith("http"):
+    # Versão sem aspas triplas para evitar que o código vire comentário no editor
+    estilo = 'background-color: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);'
+    iframe_tag = f'<iframe src="{url_mapa}" width="100%" height="750px" frameborder="0" scrolling="no" style="background-color: white;"></iframe>'
+    components.html(f'<div style="{estilo}">{iframe_tag}</div>', height=800)
 else:
-    st.info(f"🔗 Mapa não configurado para {uf_mapa} / {tema_mapa}")
+    st.info(f"🔗 Mapa não disponível para {uf_mapa} nesta configuração.")
 
 st.divider()
 
