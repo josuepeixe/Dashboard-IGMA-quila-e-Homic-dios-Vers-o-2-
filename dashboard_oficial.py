@@ -166,9 +166,13 @@ st.subheader(f"📈 IGMA vs Violência ({filtro_ano})")
 
 fig_scatter = px.scatter(
     df_filtrado, x="IGMA", y="Taxa_Homicidios_100k", color="Regiao",
-    size="Populacao", hover_name="Cidade_Exibicao", opacity=0.8,
-    color_discrete_sequence=px.colors.qualitative.Pastel # Cores mais vibrantes e suaves
+    size="Populacao", hover_name="Cidade_Exibicao", opacity=0.9,
+    color_discrete_sequence=px.colors.qualitative.Set1, # Cores mais fortes e vibrantes
+    size_max=45 # Aumenta o tamanho máximo das bolinhas
 )
+
+# Adiciona um contorno branco/cinza nas bolinhas para dar destaque no fundo
+fig_scatter.update_traces(marker=dict(line=dict(width=1, color='#E2E8F0')))
 
 fig_scatter.update_layout(
     template="plotly_dark",
@@ -188,26 +192,35 @@ st.markdown('</div><hr>', unsafe_allow_html=True)
 st.markdown('<div class="fade-in">', unsafe_allow_html=True)
 st.subheader("🗺️ Panorama Geográfico")
 
-col_esc, col_uf, col_tema = st.columns([1, 1, 2])
+col_esc, col_uf, col_tema, col_pilar = st.columns([1, 1, 1.5, 1.5])
 with col_esc:
     escopo = st.radio("Visão:", ["Brasil", "Por Estado"])
 with col_uf:
     uf_mapa = st.selectbox("Estado:", sorted(df['UF'].unique())) if escopo == "Por Estado" else "Brasil"
 with col_tema:
-    tema_mapa = st.radio("Tema de Análise:", ["Violência (Homicídios)", "Gestão Pública (IGMA)"], horizontal=True)
+    tema_mapa = st.radio("Tema de Análise:", ["Violência (Homicídios)", "Gestão Pública (IGMA)"])
+with col_pilar:
+    if tema_mapa == "Gestão Pública (IGMA)":
+        pilar_escolhido = st.selectbox("Pilar:", ["IGMA Geral", "Desenvolvimento Socioeconômico e Ordem Pública"])
+    else:
+        st.write("") # Mantém o layout alinhado
 
-# Lógica Corrigida de URL
+# Lógica Corrigida de URL (Buscando o Pilar corretamente)
 url = ""
 try:
-    url = LINKS_MAPAS.get(filtro_ano, {}).get(uf_mapa, {}).get(tema_mapa, "")
+    if tema_mapa == "Violência (Homicídios)":
+        url = LINKS_MAPAS.get(filtro_ano, {}).get(uf_mapa, {}).get(tema_mapa, "")
+    else:
+        url = LINKS_MAPAS.get(filtro_ano, {}).get(uf_mapa, {}).get(tema_mapa, {}).get(pilar_escolhido, "")
 except Exception:
     pass
 
-if url and "SEU_LINK" not in url:
+# Trava de segurança: Garante que 'url' é um texto válido e não um dicionário
+if isinstance(url, str) and url.strip() and "SEU_LINK" not in url:
     with st.spinner("Carregando mapa interativo..."):
         components.iframe(url, height=700, scrolling=False)
 else:
-    st.info(f"📍 O mapa detalhado para **{uf_mapa}** ({tema_mapa}) ainda não está configurado.")
+    st.info(f"📍 O mapa detalhado para **{uf_mapa}** ainda não está configurado no dicionário.")
 
 st.markdown('</div><hr>', unsafe_allow_html=True)
 
