@@ -28,6 +28,24 @@ def load_data():
 def aplicar_estilo_comum():
     st.markdown("""
     <style>
+        /* Estilização da Barra Lateral de Navegação */
+        [data-testid="stSidebarNav"] {
+            padding-top: 2rem;
+        }
+        [data-testid="stSidebarNav"] span {
+            font-size: 1.1rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        /* Cor de fundo sutil para o item selecionado */
+        [data-testid="stSidebarNavLink"] {
+            border-radius: 8px;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+        [data-testid="stSidebarNavLink"]:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
         .block-container { padding-top: 2rem; }
         .gradient-text {
             background: -webkit-linear-gradient(45deg, #3B82F6, #10B981);
