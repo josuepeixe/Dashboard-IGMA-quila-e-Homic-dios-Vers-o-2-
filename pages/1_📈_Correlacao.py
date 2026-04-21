@@ -15,8 +15,19 @@ df_f = df[df['Ano'] == ano]
 fig = px.scatter(
     df_f, x="IGMA", y="Taxa_Homicidios_100k", color="Regiao",
     size="Populacao", hover_name="Cidade_Exibicao",
-    color_discrete_sequence=px.colors.qualitative.Bold, size_max=35, opacity=0.9
+    color_discrete_sequence=px.colors.qualitative.Pastel, # Cores mais suaves
+    size_max=35, opacity=0.8
 )
-fig.update_traces(marker=dict(line=dict(width=1.5, color='black')))
-fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-st.plotly_chart(fig, use_container_width=True)
+
+# Uma borda cinza média funciona bem tanto no claro quanto no escuro
+fig.update_traces(marker=dict(line=dict(width=1, color='Gray')))
+
+# Removemos o template forçado e passamos o controle para o Streamlit
+fig.update_layout(
+    xaxis_title="Nota IGMA Geral", 
+    yaxis_title="Taxa de Homicídios (por 100k)",
+    margin=dict(t=30, b=10, l=10, r=10)
+)
+
+# O segredo está aqui: theme="streamlit"
+st.plotly_chart(fig, use_container_width=True, theme="streamlit")
