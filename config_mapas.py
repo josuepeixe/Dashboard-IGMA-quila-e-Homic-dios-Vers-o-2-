@@ -1,7 +1,6 @@
 # config_mapas.py
 # Aqui ficam guardados todos os links do Datawrapper do seu projeto.
 
-
 LINKS_MAPAS = {
     2022: {
         "Brasil": {
@@ -23,7 +22,6 @@ LINKS_MAPAS = {
                 "Sustentabilidade": "https://datawrapper.dwcdn.net/m20rr/2/"
             }
         }
-    }
         # Pode ir adicionando outros estados aqui depois...
     },
     2023: {
