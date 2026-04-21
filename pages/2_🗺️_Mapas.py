@@ -12,7 +12,7 @@ df = load_data()
 st.markdown('<h1 class="gradient-text">🗺️ Inteligência Geográfica</h1>', unsafe_allow_html=True)
 st.caption("Analise indicadores espaciais de forma isolada ou comparativa.")
 
-# Criando as abas internas para organizar o assunto "Mapas"
+# Criando as abas internas
 tab_geral, tab_comparador = st.tabs(["📋 Visão Geral (Todos os Mapas)", "⚖️ Comparador Lado a Lado"])
 
 # --- ABA 1: VISÃO GERAL ---
@@ -31,7 +31,6 @@ with tab_geral:
     if not mapas_geral:
         st.info("Nenhum mapa configurado para esta seleção.")
     else:
-        # Lógica para listar Violência e depois Gestão
         lista_mapas = []
         if "Violência (Homicídios)" in mapas_geral:
             lista_mapas.append({"t": "🔴 Homicídios", "u": mapas_geral["Violência (Homicídios)"]})
@@ -44,17 +43,16 @@ with tab_geral:
         for item in lista_mapas:
             if isinstance(item["u"], str) and item["u"].startswith("http"):
                 st.markdown(f"#### {item['t']}")
+                # Altura aumentada para evitar cortes
                 estilo = 'background: #F8FAFC; padding: 20px; border-radius: 15px; border: 1px solid #E2E8F0; margin-bottom: 30px;'
-                iframe = f'<iframe src="{item["u"]}" width="100%" height="800" frameborder="0" scrolling="no" style="background: white;"></iframe>'
-                components.html(f'<div style="{estilo}">{iframe}</div>', height=850)
+                iframe = f'<iframe src="{item["u"]}" width="100%" height="850" frameborder="0" scrolling="no" style="background: white;"></iframe>'
+                components.html(f'<div style="{estilo}">{iframe}</div>', height=950)
 
 # --- ABA 2: COMPARADOR LADO A LADO ---
 with tab_comparador:
     st.markdown("### Comparação entre Localidades ou Temas")
     
-    # Filtros de busca dinâmica baseados no que existe no config_mapas
     anos_c = sorted(df['Ano'].unique(), reverse=True)
-    
     col_l, col_r = st.columns(2)
 
     def interface_comparacao(lado_id, titulo_default):
@@ -64,25 +62,30 @@ with tab_comparador:
         locais = list(LINKS_MAPAS.get(a, {}).keys())
         l = st.selectbox("Localidade (Cidade/UF):", locais, key=f"l_{lado_id}")
         
-        t = st.selectbox("Tema:", ["Violência", "Gestão"], key=f"t_{lado_id}")
+        t = st.selectbox("Tema:", ["Violência (Homicídios)", "Gestão Pública (IGMA)"], key=f"t_{lado_id}")
         
         url_c = ""
         try:
             dados = LINKS_MAPAS.get(a, {}).get(l, {})
-            if t == "Violência":
+            if t == "Violência (Homicídios)":
+                # ESPAÇADOR PARA ALINHAMENTO:
+                # Ocupa o lugar onde estaria o selectbox de pilares para manter os mapas alinhados
+                st.markdown('<div style="height: 88px;"></div>', unsafe_allow_html=True)
                 url_c = dados.get("Violência (Homicídios)", "")
             else:
                 p_disp = list(dados.get("Gestão Pública (IGMA)", {}).keys())
-                p = st.selectbox("Pilar:", p_disp, key=f"p_{lado_id}")
+                p = st.selectbox("Pilar da Gestão:", p_disp, key=f"p_{lado_id}")
                 url_c = dados.get("Gestão Pública (IGMA)", {}).get(p, "")
-        except: url_c = ""
+        except: 
+            url_c = ""
 
+        # Renderização com altura ajustada (850px para o mapa)
         if isinstance(url_c, str) and url_c.startswith("http"):
             estilo_c = 'background: white; padding: 10px; border-radius: 10px; border: 1px solid #E2E8F0;'
-            iframe_c = f'<iframe src="{url_c}" width="100%" height="600" frameborder="0" scrolling="no"></iframe>'
-            components.html(f'<div style="{estilo_c}">{iframe_c}</div>', height=650)
+            iframe_c = f'<iframe src="{url_c}" width="100%" height="850" frameborder="0" scrolling="no"></iframe>'
+            components.html(f'<div style="{estilo_c}">{iframe_c}</div>', height=900)
         else:
-            st.warning("Mapa não configurado.")
+            st.warning("Mapa não configurado ou link inválido.")
 
     with col_l:
         interface_comparacao("esq", "Cenário A")
