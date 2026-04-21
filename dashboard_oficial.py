@@ -56,7 +56,34 @@ with k4:
 
 st.divider()
 
-# 4. Gráficos de Distribuição (O que você sugeriu!)
+# 4. CORRELAÇÃO
+st.markdown("### 🔍 Relacionamento: Gestão vs Segurança")
+st.caption("Veja como a nota de gestão (IGMA) se comporta em relação à taxa de violência em nível nacional.")
+
+# Cálculo da correlação de Pearson para exibir como texto informativo
+correlacao = df_atual[['IGMA', 'Taxa_Homicidios_100k']].corr().iloc[0,1]
+
+fig_corr_home = px.scatter(
+    df_atual, x="IGMA", y="Taxa_Homicidios_100k",
+    color="Regiao", size="Populacao", hover_name="Cidade",
+    trendline="ols", # Adiciona a linha de tendência (requer statsmodels)
+    trendline_color_override="white",
+    color_discrete_sequence=px.colors.qualitative.Safe,
+    opacity=0.5,
+    title=f"Dispersão Nacional (Correlação de Pearson: {correlacao:.2f})"
+)
+
+fig_corr_home.update_layout(
+    height=500, 
+    xaxis_title="Nota IGMA", 
+    yaxis_title="Taxa de Homicídios (100k)",
+    margin=dict(t=50, b=20)
+)
+st.plotly_chart(fig_corr_home, use_container_width=True, theme="streamlit")
+
+st.divider()
+
+# 5. Gráficos de Distribuição (O que você sugeriu!)
 st.markdown("### 📊 Distribuição dos Indicadores")
 st.caption(f"Como os municípios estão espalhados em relação às notas e taxas no ano de {ano_atual}.")
 
@@ -82,7 +109,7 @@ with c_dist2:
     fig_hist_hom.update_layout(xaxis_title="Taxa por 100k hab.", yaxis_title="Qtd. de Cidades", margin=dict(t=40, b=20), height=350)
     st.plotly_chart(fig_hist_hom, use_container_width=True, theme="streamlit")
 
-# 5. Evolução Histórica Macro
+# 6. Evolução Histórica Macro
 st.markdown("### 📈 Evolução Histórica Nacional")
 st.caption("Acompanhamento das médias brasileiras ao longo dos anos.")
 
