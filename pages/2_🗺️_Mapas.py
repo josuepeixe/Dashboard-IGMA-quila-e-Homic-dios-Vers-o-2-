@@ -26,7 +26,16 @@ try:
 except: url = ""
 
 if isinstance(url, str) and url.startswith("http"):
-    html = f'<div style="background: white; padding: 15px; border-radius: 15px;"><iframe src="{url}" width="100%" height="750px" frameborder="0"></iframe></div>'
-    components.html(html, height=800)
+    # Quebrando o estilo e as tags em variáveis simples de uma linha (sem aspas triplas!)
+    estilo_div = "background-color: #F8FAFC; padding: 15px; border-radius: 12px; border: 1px solid #E2E8F0;"
+    estilo_iframe = "width: 100%; min-width: 100% !important; border: none;"
+    
+    # Montando a tag iframe
+    tag_iframe = f'<iframe src="{url}" style="{estilo_iframe}" height="750" frameborder="0" scrolling="auto" allowfullscreen="true"></iframe>'
+    
+    # Juntando tudo na div final
+    html_final = f'<div style="{estilo_div}">{tag_iframe}</div>'
+    
+    components.html(html_final, height=800)
 else:
     st.warning("Mapa não disponível para esta seleção.")
