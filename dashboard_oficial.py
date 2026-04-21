@@ -16,21 +16,40 @@ st.set_page_config(
 )
 
 # ==========================================
-# ESTILO GLOBAL
+# CSS + ANIMAÇÕES
 # ==========================================
 st.markdown("""
 <style>
+
 .block-container {
     padding-top: 2rem;
 }
 
+/* ===== ANIMAÇÃO ===== */
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(10px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+.fade-in {
+    animation: fadeIn 0.6s ease-in-out;
+}
+
+/* ===== CARDS ===== */
 .card {
     background-color: #161B22;
     padding: 18px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: all 0.25s ease;
 }
 
+.card:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+
+/* ===== KPI ===== */
 .kpi {
     text-align: center;
 }
@@ -43,7 +62,28 @@ st.markdown("""
 .kpi-value {
     font-size: 26px;
     font-weight: bold;
+    transition: transform 0.2s ease;
 }
+
+.card:hover .kpi-value {
+    transform: scale(1.05);
+}
+
+/* ===== SIDEBAR ===== */
+section[data-testid="stSidebar"] {
+    animation: fadeIn 0.8s ease;
+}
+
+/* ===== TÍTULOS ===== */
+h1, h2, h3 {
+    animation: fadeIn 0.5s ease;
+}
+
+/* ===== ELEMENTOS ===== */
+.element-container {
+    animation: fadeIn 0.7s ease;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -53,34 +93,36 @@ st.markdown("""
 @st.cache_data(ttl=600)
 def load_data():
     conn = st.connection("gsheets", type=GSheetsConnection)
-    df = conn.read()
+    return conn.read()
 
-    pilares = [
-        'Governança, Eficiência Fiscal e Transparência', 
-        'Educação', 
-        'Saúde e Bem-Estar', 
-        'Infraestrutura e Mobilidade Urbana', 
-        'Sustentabilidade', 
-        'Desenvolvimento Socioeconômico e Ordem Pública'
-    ]
+with st.spinner("Carregando dados..."):
+    try:
+        df = load_data()
+    except Exception as e:
+        st.error(f"Erro ao conectar: {e}")
+        st.stop()
 
-    cols_numericas = ['IGMA', 'Taxa_Homicidios_100k', 'Populacao'] + pilares
-    for col in cols_numericas:
-        if col in df.columns:
-            if df[col].dtype == object:
-                df[col] = df[col].str.replace(',', '.')
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+# ==========================================
+# TRATAMENTO
+# ==========================================
+pilares = [
+    'Governança, Eficiência Fiscal e Transparência', 
+    'Educação', 
+    'Saúde e Bem-Estar', 
+    'Infraestrutura e Mobilidade Urbana', 
+    'Sustentabilidade', 
+    'Desenvolvimento Socioeconômico e Ordem Pública'
+]
 
-    if 'Cidade' in df.columns and 'UF' in df.columns:
-        df['Cidade_Exibicao'] = df['Cidade'] + ' - ' + df['UF']
+cols_numericas = ['IGMA', 'Taxa_Homicidios_100k', 'Populacao'] + pilares
 
-    return df
+for col in cols_numericas:
+    if col in df.columns:
+        if df[col].dtype == object:
+            df[col] = df[col].str.replace(',', '.')
+        df[col] = pd.to_numeric(df[col], errors='coerce')
 
-try:
-    df = load_data()
-except Exception as e:
-    st.error(f"Erro ao conectar: {e}")
-    st.stop()
+df['Cidade_Exibicao'] = df['Cidade'] + ' - ' + df['UF']
 
 # ==========================================
 # SIDEBAR
@@ -99,6 +141,9 @@ with st.sidebar.expander("População"):
     pop_min, pop_max = int(df['Populacao'].min()), int(df['Populacao'].max())
     range_pop = st.slider("Faixa", pop_min, pop_max, (pop_min, pop_max))
 
+# ==========================================
+# FILTRO
+# ==========================================
 df_filtrado = df[df['Ano'] == filtro_ano].copy()
 
 if filtro_uf:
@@ -120,11 +165,11 @@ st.title("🇧🇷 Monitor: Gestão Pública vs Segurança")
 st.caption("Impacto do desenvolvimento municipal na violência")
 
 # ==========================================
-# KPIs
+# KPI
 # ==========================================
 def kpi(title, value):
     st.markdown(f"""
-    <div class="card kpi">
+    <div class="card kpi fade-in">
         <div class="kpi-title">{title}</div>
         <div class="kpi-value">{value}</div>
     </div>
@@ -149,12 +194,9 @@ st.divider()
 # ==========================================
 # SCATTER
 # ==========================================
-st.subheader("📈 Correlação IGMA vs Violência")
+st.markdown('<div class="fade-in">', unsafe_allow_html=True)
 
-foco = st.selectbox(
-    "Destacar Região",
-    ["Todas"] + sorted(df_filtrado['Regiao'].dropna().unique())
-)
+st.subheader("📈 Correlação IGMA vs Violência")
 
 fig = px.scatter(
     df_filtrado,
@@ -170,16 +212,21 @@ fig.update_layout(
     template="plotly_dark",
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
+    transition=dict(duration=500),
     height=500
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
 
 # ==========================================
 # MAPA
 # ==========================================
+st.markdown('<div class="fade-in">', unsafe_allow_html=True)
+
 st.subheader("🗺️ Mapa")
 
 col1, col2, col3 = st.columns(3)
@@ -203,11 +250,15 @@ if url:
 else:
     st.info("Mapa indisponível")
 
+st.markdown('</div>', unsafe_allow_html=True)
+
 st.divider()
 
 # ==========================================
 # RADAR
 # ==========================================
+st.markdown('<div class="fade-in">', unsafe_allow_html=True)
+
 st.subheader("🔎 Raio-X Municipal")
 
 cidade = st.selectbox(
@@ -236,6 +287,11 @@ if cidade:
         fill='toself'
     ))
 
-    fig.update_layout(template="plotly_dark")
+    fig.update_layout(
+        template="plotly_dark",
+        transition=dict(duration=500)
+    )
 
     st.plotly_chart(fig, use_container_width=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
