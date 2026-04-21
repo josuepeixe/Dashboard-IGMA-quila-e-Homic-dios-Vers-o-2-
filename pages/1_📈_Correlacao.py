@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+import pandas as pd
 from utils import load_data, aplicar_estilo_comum
 
 # 1. Configuração da Página
@@ -21,13 +22,11 @@ with c2:
     ufs = sorted(df['UF'].dropna().unique())
     uf_sel = st.multiselect("Filtrar por Estado:", ufs, placeholder="Todos os Estados")
 
-# Filtra primeiro o ano e estado para alimentar o próximo filtro
 df_f = df[df['Ano'] == ano_sel].copy()
 if uf_sel:
     df_f = df_f[df_f['UF'].isin(uf_sel)]
 
 with c3:
-    # A Busca por Município fica muito mais inteligente se procurar apenas no estado selecionado
     cidades_lista = sorted(df_f['Cidade_Exibicao'].dropna().unique())
     cidade_destaque = st.selectbox("🎯 Localizar Município Específico:", cidades_lista, index=None, placeholder="Digite o nome da cidade...")
 
@@ -35,7 +34,7 @@ if df_f.empty:
     st.warning("Nenhum dado encontrado para essa seleção.")
     st.stop()
 
-# 3. Cálculo das Médias (O coração da Matriz)
+# 3. Cálculo das Médias
 media_igma = df_f['IGMA'].mean()
 media_hom = df_f['Taxa_Homicidios_100k'].mean()
 
@@ -49,18 +48,13 @@ fig = px.scatter(
     size_max=35, opacity=0.8
 )
 
-# Adiciona o contorno sutil em todas as bolinhas normais
 fig.update_traces(marker=dict(line=dict(width=1, color='Gray')))
-
-# Desenhando a Matriz de Quadrantes (Linhas tracejadas)
 fig.add_hline(y=media_hom, line_dash="dot", line_color="#EF4444", annotation_text=f"Média Homicídios ({media_hom:.1f})", annotation_position="top left")
 fig.add_vline(x=media_igma, line_dash="dot", line_color="#10B981", annotation_text=f"Média IGMA ({media_igma:.1f})", annotation_position="top right")
 
 # 5. Lógica do Destaque (Mira)
 if cidade_destaque:
     dados_dest = df_f[df_f['Cidade_Exibicao'] == cidade_destaque].iloc[0]
-    
-    # Adiciona uma camada extra por cima com o município destacado
     fig.add_trace(go.Scatter(
         x=[dados_dest['IGMA']], 
         y=[dados_dest['Taxa_Homicidios_100k']],
@@ -73,7 +67,6 @@ if cidade_destaque:
         showlegend=False
     ))
 
-# 6. Configuração Final do Layout
 fig.update_layout(
     xaxis_title="Nota IGMA Geral", 
     yaxis_title="Taxa de Homicídios (por 100k)",
@@ -81,52 +74,89 @@ fig.update_layout(
     height=550
 )
 
-# Exibe o gráfico adaptando o tema claro/escuro
 st.plotly_chart(fig, use_container_width=True, theme="streamlit")
 st.divider()
 
-# 7. Resumo Analítico (Top 5)
-st.markdown("### 🏆 Extremos da Matriz")
-col_rank1, col_rank2 = st.columns(2)
+# ==========================================
+# 7. RESUMO ANALÍTICO EM ABAS
+# ==========================================
+st.markdown("### 📊 Painel de Análise Detalhada")
 
-with col_rank1:
-    st.markdown("#### 🟢 Zona Ideal (Alto IGMA, Baixa Violência)")
-    st.caption("Cidades com Gestão acima da média e Homicídios abaixo da média.")
+# Criando as abas de análise
+tab_extremos, tab_capitais, tab_regioes = st.tabs(["🏆 Extremos da Matriz", "🏛️ Comparativo de Capitais", "🌎 Médias por Região"])
+
+# --- ABA 1: EXTREMOS (O TOP 5) ---
+with tab_extremos:
+    col_rank1, col_rank2 = st.columns(2)
+    with col_rank1:
+        st.markdown("#### 🟢 Zona Ideal (Alto IGMA, Baixa Violência)")
+        zona_ideal = df_f[(df_f['IGMA'] > media_igma) & (df_f['Taxa_Homicidios_100k'] < media_hom)]
+        if not zona_ideal.empty:
+            top5_ideal = zona_ideal.sort_values(by=['Taxa_Homicidios_100k', 'IGMA'], ascending=[True, False]).head(5)
+            st.dataframe(top5_ideal[['Cidade', 'UF', 'IGMA', 'Taxa_Homicidios_100k']], hide_index=True, use_container_width=True)
+        else:
+            st.info("Nenhuma cidade atingiu a zona ideal nesta seleção.")
+
+    with col_rank2:
+        st.markdown("#### 🔴 Zona Crítica (Baixo IGMA, Alta Violência)")
+        zona_critica = df_f[(df_f['IGMA'] < media_igma) & (df_f['Taxa_Homicidios_100k'] > media_hom)]
+        if not zona_critica.empty:
+            top5_critica = zona_critica.sort_values(by=['Taxa_Homicidios_100k', 'IGMA'], ascending=[False, True]).head(5)
+            st.dataframe(top5_critica[['Cidade', 'UF', 'IGMA', 'Taxa_Homicidios_100k']], hide_index=True, use_container_width=True)
+        else:
+            st.info("Nenhuma cidade está na zona crítica nesta seleção.")
+
+# --- ABA 2: CAPITAIS ---
+with tab_capitais:
+    # Lista com todas as capitais no formato que criamos na coluna Cidade_Exibicao
+    lista_capitais = [
+        "Aracaju - SE", "Belém - PA", "Belo Horizonte - MG", "Boa Vista - RR", "Brasília - DF",
+        "Campo Grande - MS", "Cuiabá - MT", "Curitiba - PR", "Florianópolis - SC", "Fortaleza - CE",
+        "Goiânia - GO", "João Pessoa - PB", "Macapá - AP", "Maceió - AL", "Manaus - AM",
+        "Natal - RN", "Palmas - TO", "Porto Alegre - RS", "Porto Velho - RO", "Recife - PE",
+        "Rio Branco - AC", "Rio de Janeiro - RJ", "Salvador - BA", "São Luís - MA",
+        "São Paulo - SP", "Teresina - PI", "Vitória - ES"
+    ]
     
-    # Filtra o quadrante inferior direito
-    zona_ideal = df_f[(df_f['IGMA'] > media_igma) & (df_f['Taxa_Homicidios_100k'] < media_hom)]
+    df_capitais = df_f[df_f['Cidade_Exibicao'].isin(lista_capitais)].copy()
     
-    if not zona_ideal.empty:
-        # Ordena para pegar as melhores das melhores
-        top5_ideal = zona_ideal.sort_values(by=['Taxa_Homicidios_100k', 'IGMA'], ascending=[True, False]).head(5)
+    if not df_capitais.empty:
+        # Ordenamos por IGMA (do melhor para o pior)
+        df_capitais = df_capitais.sort_values(by='IGMA', ascending=False)
         st.dataframe(
-            top5_ideal[['Cidade', 'UF', 'IGMA', 'Taxa_Homicidios_100k']],
+            df_capitais[['Cidade_Exibicao', 'Regiao', 'IGMA', 'Taxa_Homicidios_100k', 'Populacao']],
             column_config={
-                "IGMA": st.column_config.NumberColumn(format="%.2f"),
-                "Taxa_Homicidios_100k": st.column_config.NumberColumn("Homicídios (100k)", format="%.2f")
+                "Cidade_Exibicao": "Capital",
+                "Taxa_Homicidios_100k": st.column_config.NumberColumn("Homicídios (100k)", format="%.2f"),
+                "IGMA": st.column_config.NumberColumn("Nota IGMA", format="%.2f"),
+                "Populacao": st.column_config.NumberColumn("População", format="%d")
             },
             hide_index=True, use_container_width=True
         )
     else:
-        st.info("Nenhuma cidade atingiu a zona ideal nesta seleção.")
+        st.info("Nenhuma capital encontrada para o filtro atual.")
 
-with col_rank2:
-    st.markdown("#### 🔴 Zona Crítica (Baixo IGMA, Alta Violência)")
-    st.caption("Cidades com Gestão abaixo da média e Homicídios acima da média.")
+# --- ABA 3: REGIÕES ---
+with tab_regioes:
+    # Agrupamos os dados pela coluna 'Regiao', calculando a média para as taxas e a soma para a população
+    df_regioes = df_f.groupby('Regiao').agg(
+        Cidades=('Cidade', 'count'),
+        IGMA=('IGMA', 'mean'),
+        Taxa_Homicidios_100k=('Taxa_Homicidios_100k', 'mean'),
+        Populacao=('Populacao', 'sum')
+    ).reset_index()
     
-    # Filtra o quadrante superior esquerdo
-    zona_critica = df_f[(df_f['IGMA'] < media_igma) & (df_f['Taxa_Homicidios_100k'] > media_hom)]
+    # Ordenamos pela média do IGMA
+    df_regioes = df_regioes.sort_values(by='IGMA', ascending=False)
     
-    if not zona_critica.empty:
-        # Ordena para pegar as mais críticas
-        top5_critica = zona_critica.sort_values(by=['Taxa_Homicidios_100k', 'IGMA'], ascending=[False, True]).head(5)
-        st.dataframe(
-            top5_critica[['Cidade', 'UF', 'IGMA', 'Taxa_Homicidios_100k']],
-            column_config={
-                "IGMA": st.column_config.NumberColumn(format="%.2f"),
-                "Taxa_Homicidios_100k": st.column_config.NumberColumn("Homicídios (100k)", format="%.2f")
-            },
-            hide_index=True, use_container_width=True
-        )
-    else:
-        st.info("Nenhuma cidade está na zona crítica nesta seleção.")
+    st.dataframe(
+        df_regioes,
+        column_config={
+            "Regiao": "Região do Brasil",
+            "Cidades": "Qtd. Cidades Analisadas",
+            "IGMA": st.column_config.NumberColumn("Média IGMA", format="%.2f"),
+            "Taxa_Homicidios_100k": st.column_config.NumberColumn("Média Homicídios (100k)", format="%.2f"),
+            "Populacao": st.column_config.NumberColumn("População Total (hab)", format="%d")
+        },
+        hide_index=True, use_container_width=True
+    )
