@@ -4,83 +4,87 @@ from utils import load_data, aplicar_estilo_comum
 from config_mapas import LINKS_MAPAS
 
 # 1. Configuração da Página
-st.set_page_config(layout="wide", page_title="Painel Comparativo de Mapas")
+st.set_page_config(layout="wide", page_title="Panorama Geográfico")
 aplicar_estilo_comum()
 
-# 2. Carregar Dados
 df = load_data()
 
-st.markdown('<h1 class="gradient-text">🗺️ Painel Comparativo Geográfico</h1>', unsafe_allow_html=True)
-st.caption("Visualize e compare todos os indicadores geográficos disponíveis para o recorte selecionado.")
+st.markdown('<h1 class="gradient-text">🗺️ Inteligência Geográfica</h1>', unsafe_allow_html=True)
+st.caption("Analise indicadores espaciais de forma isolada ou comparativa.")
 
-# 3. Filtros de Comparação (Topo da Página)
-col_ano, col_escopo, col_uf = st.columns([1, 1, 1.5])
+# Criando as abas internas para organizar o assunto "Mapas"
+tab_geral, tab_comparador = st.tabs(["📋 Visão Geral (Todos os Mapas)", "⚖️ Comparador Lado a Lado"])
 
-with col_ano:
-    anos_disponiveis = sorted(df['Ano'].dropna().unique(), reverse=True)
-    ano_sel = st.selectbox("📅 Selecione o Ano:", anos_disponiveis)
+# --- ABA 1: VISÃO GERAL ---
+with tab_geral:
+    st.markdown("### Painel de Exibição Completa")
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        ano_geral = st.selectbox("Selecione o Ano:", sorted(df['Ano'].unique(), reverse=True), key="ano_g")
+    with c2:
+        locais_disp = list(LINKS_MAPAS.get(ano_geral, {}).keys())
+        local_geral = st.selectbox("Selecione a Localidade:", locais_disp, index=locais_disp.index("CE") if "CE" in locais_disp else 0, key="loc_g")
 
-with col_escopo:
-    escopo = st.radio("📍 Nível de Análise:", ["Brasil", "Estado"], horizontal=True)
+    st.divider()
 
-with col_uf:
-    if escopo == "Estado":
-        lista_ufs = sorted(df['UF'].unique())
-        # Tenta deixar CE como padrão, senão pega o primeiro
-        idx_padrao = lista_ufs.index("CE") if "CE" in lista_ufs else 0
-        uf_sel = st.selectbox("Escolha a UF para comparar:", lista_ufs, index=idx_padrao)
+    mapas_geral = LINKS_MAPAS.get(ano_geral, {}).get(local_geral, {})
+    if not mapas_geral:
+        st.info("Nenhum mapa configurado para esta seleção.")
     else:
-        uf_sel = "Brasil"
-
-st.divider()
-
-# 4. Lógica de Exibição dos Mapas
-# Pegamos o dicionário de links para o ano e local selecionados
-mapas_disponiveis = LINKS_MAPAS.get(ano_sel, {}).get(uf_sel, {})
-
-if not mapas_disponiveis:
-    st.info(f"💡 Não encontramos mapas cadastrados para {uf_sel} no ano {ano_sel}.")
-else:
-    # Criamos uma lista para organizar o que vamos mostrar
-    itens_para_exibir = []
-
-    # 1. Adiciona o mapa de Violência se existir
-    if "Violência (Homicídios)" in mapas_disponiveis:
-        itens_para_exibir.append({
-            "titulo": "🔴 Indicador de Violência (Homicídios)",
-            "url": mapas_disponiveis["Violência (Homicídios)"]
-        })
-
-    # 2. Adiciona os mapas de Gestão (IGMA) se existirem
-    gestao_links = mapas_disponiveis.get("Gestão Pública (IGMA)", {})
-    if isinstance(gestao_links, dict):
-        for pilar, url in gestao_links.items():
-            itens_para_exibir.append({
-                "titulo": f"🟢 Gestão Pública: {pilar}",
-                "url": url
-            })
-
-    # 5. Renderização dos Mapas (Um abaixo do outro para melhor comparação)
-    if not itens_para_exibir:
-        st.warning("Nenhum link válido encontrado para esta seleção.")
-    else:
-        st.write(f"### Mostrando {len(itens_para_exibir)} mapas para {uf_sel} ({ano_sel})")
+        # Lógica para listar Violência e depois Gestão
+        lista_mapas = []
+        if "Violência (Homicídios)" in mapas_geral:
+            lista_mapas.append({"t": "🔴 Homicídios", "u": mapas_geral["Violência (Homicídios)"]})
         
-        for item in itens_para_exibir:
-            url = item["url"]
-            # Só renderiza se for um link de verdade
-            if isinstance(url, str) and url.startswith("http"):
-                st.markdown(f"#### {item['titulo']}")
-                
-                # Estilo para o fundo claro e bordas
-                estilo_div = 'background-color: #F8FAFC; padding: 25px; border-radius: 15px; border: 1px solid #E2E8F0; margin-bottom: 50px;'
-                estilo_iframe = 'width: 100%; border: none; background-color: white; border-radius: 10px;'
-                
-                tag_iframe = f'<iframe src="{url}" style="{estilo_iframe}" height="850" frameborder="0" scrolling="no" allowfullscreen="true"></iframe>'
-                html_final = f'<div style="{estilo_div}">{tag_iframe}</div>'
-                
-                components.html(html_final, height=950)
+        gestao = mapas_geral.get("Gestão Pública (IGMA)", {})
+        if isinstance(gestao, dict):
+            for p, u in gestao.items():
+                lista_mapas.append({"t": f"🟢 IGMA: {p}", "u": u})
+
+        for item in lista_mapas:
+            if isinstance(item["u"], str) and item["u"].startswith("http"):
+                st.markdown(f"#### {item['t']}")
+                estilo = 'background: #F8FAFC; padding: 20px; border-radius: 15px; border: 1px solid #E2E8F0; margin-bottom: 30px;'
+                iframe = f'<iframe src="{item["u"]}" width="100%" height="800" frameborder="0" scrolling="no" style="background: white;"></iframe>'
+                components.html(f'<div style="{estilo}">{iframe}</div>', height=850)
+
+# --- ABA 2: COMPARADOR LADO A LADO ---
+with tab_comparador:
+    st.markdown("### Comparação entre Localidades ou Temas")
+    
+    # Filtros de busca dinâmica baseados no que existe no config_mapas
+    anos_c = sorted(df['Ano'].unique(), reverse=True)
+    
+    col_l, col_r = st.columns(2)
+
+    def interface_comparacao(lado_id, titulo_default):
+        st.subheader(titulo_default)
+        a = st.selectbox("Ano:", anos_c, key=f"a_{lado_id}")
+        
+        locais = list(LINKS_MAPAS.get(a, {}).keys())
+        l = st.selectbox("Localidade (Cidade/UF):", locais, key=f"l_{lado_id}")
+        
+        t = st.selectbox("Tema:", ["Violência", "Gestão"], key=f"t_{lado_id}")
+        
+        url_c = ""
+        try:
+            dados = LINKS_MAPAS.get(a, {}).get(l, {})
+            if t == "Violência":
+                url_c = dados.get("Violência (Homicídios)", "")
             else:
-                # Opcional: mostrar aviso se o link ainda for "SEU_LINK_AQUI"
-                if "SEU_LINK" in str(url):
-                     st.caption(f"ℹ️ O mapa para '{item['titulo']}' ainda está em fase de configuração.")
+                p_disp = list(dados.get("Gestão Pública (IGMA)", {}).keys())
+                p = st.selectbox("Pilar:", p_disp, key=f"p_{lado_id}")
+                url_c = dados.get("Gestão Pública (IGMA)", {}).get(p, "")
+        except: url_c = ""
+
+        if isinstance(url_c, str) and url_c.startswith("http"):
+            estilo_c = 'background: white; padding: 10px; border-radius: 10px; border: 1px solid #E2E8F0;'
+            iframe_c = f'<iframe src="{url_c}" width="100%" height="600" frameborder="0" scrolling="no"></iframe>'
+            components.html(f'<div style="{estilo_c}">{iframe_c}</div>', height=650)
+        else:
+            st.warning("Mapa não configurado.")
+
+    with col_l:
+        interface_comparacao("esq", "Cenário A")
+    with col_r:
+        interface_comparacao("dir", "Cenário B")
