@@ -3,6 +3,7 @@ import plotly.express as px
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from utils import load_data, aplicar_estilo_comum
+from sklearn.metrics import r2_score
 
 # 1. Configuração da Página
 st.set_page_config(layout="wide", page_title="Inteligência Artificial & Correlação")
@@ -51,38 +52,49 @@ tab_ia, tab_corr = st.tabs(["🧠 O Peso dos Pilares (Machine Learning)", "📊 
 # ==========================================
 with tab_ia:
     st.markdown("### Qual área da Gestão Pública mais impacta a Segurança?")
-    st.caption("O algoritmo de **Random Forest** analisou todas as cidades e ranqueou o grau de importância de cada pilar para a redução ou aumento da Taxa de Homicídios.")
+    st.caption("O algoritmo analisou todas as cidades e ranqueou o grau de importância de cada pilar para a Taxa de Homicídios.")
 
-    # 3. Treinando o Modelo de Inteligência Artificial na hora
+    # Treinando o Modelo
     X = df_ml[pilares]
     y = df_ml['Taxa_Homicidios_100k']
 
     modelo_rf = RandomForestRegressor(n_estimators=100, random_state=42)
     modelo_rf.fit(X, y)
 
-    # Pegando os "Pesos" (Feature Importances) que a IA calculou
-    importancias = modelo_rf.feature_importances_
+    # Pegando as previsões da IA para comparar com a realidade
+    y_previsto = modelo_rf.predict(X)
     
-    # Criando um DataFrame para o gráfico
-    df_importancia = pd.DataFrame({
-        'Pilar': pilares,
-        'Impacto (%)': importancias * 100
-    }).sort_values(by='Impacto (%)', ascending=True) # Ascending true para o Plotly mostrar o maior no topo
+    # Calculando a Nota de Aprendizado (R²)
+    from sklearn.metrics import r2_score
+    acuracia = r2_score(y, y_previsto) * 100
 
-    # Gráfico de Barras Horizontais
-    fig_ia = px.bar(
-        df_importancia, x='Impacto (%)', y='Pilar', orientation='h',
-        color='Impacto (%)', color_continuous_scale=px.colors.sequential.Tealgrn,
-        text_auto='.1f'
-    )
-    
-    fig_ia.update_layout(
-        xaxis_title="Grau de Influência no Modelo IA (%)",
-        yaxis_title="",
-        height=450,
-        margin=dict(l=10, r=10, t=30, b=10)
-    )
-    st.plotly_chart(fig_ia, use_container_width=True, theme="streamlit")
+    c_grafico, c_metricas = st.columns([2, 1])
+
+    with c_grafico:
+        # Gráfico de Barras dos Pesos (O que já tínhamos feito)
+        importancias = modelo_rf.feature_importances_
+        df_importancia = pd.DataFrame({'Pilar': pilares, 'Impacto (%)': importancias * 100}).sort_values(by='Impacto (%)', ascending=True)
+        
+        fig_ia = px.bar(df_importancia, x='Impacto (%)', y='Pilar', orientation='h', color='Impacto (%)', color_continuous_scale=px.colors.sequential.Tealgrn, text_auto='.1f')
+        fig_ia.update_layout(xaxis_title="Grau de Influência no Modelo IA (%)", yaxis_title="", height=400, margin=dict(l=10, r=10, t=10, b=10))
+        st.plotly_chart(fig_ia, use_container_width=True, theme="streamlit")
+
+    with c_metricas:
+        # 1. Métrica de Confiabilidade
+        st.markdown("#### 🧠 Desempenho da IA")
+        st.metric("Confiabilidade do Modelo (R²)", f"{acuracia:.1f}%")
+        st.caption("Um R² alto indica que a IA conseguiu aprender os padrões reais entre a gestão e a violência.")
+        st.divider()
+        
+        # 2. Gráfico de Dispersão: Real vs Previsto (A Prova do Aprendizado)
+        df_prova = pd.DataFrame({'Real': y, 'Previsto': y_previsto})
+        fig_prova = px.scatter(df_prova, x='Real', y='Previsto', opacity=0.6, color_discrete_sequence=['#F59E0B'], title="Real vs Previsto")
+        # Linha perfeita (onde a IA acerta na mosca)
+        max_val = max(df_prova['Real'].max(), df_prova['Previsto'].max())
+        fig_prova.add_shape(type="line", x0=0, y0=0, x1=max_val, y1=max_val, line=dict(color="white", dash="dot"))
+        
+        fig_prova.update_layout(height=250, margin=dict(l=10, r=10, t=30, b=10), xaxis_title="Homicídios Reais", yaxis_title="Previsão da IA")
+        st.plotly_chart(fig_prova, use_container_width=True, theme="streamlit")
     
     st.info("💡 **Como ler este gráfico:** O pilar com o maior percentual é o que possui a correlação não-linear mais forte com a violência. Se um gestor público tivesse recursos limitados, a IA sugere que investir neste pilar traria a maior variação na taxa de homicídios.")
 
