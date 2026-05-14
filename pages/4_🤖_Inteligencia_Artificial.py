@@ -52,26 +52,30 @@ tab_ia, tab_corr = st.tabs(["🧠 O Peso dos Pilares (Machine Learning)", "📊 
 # ==========================================
 with tab_ia:
     st.markdown("### Qual área da Gestão Pública mais impacta a Segurança?")
-    st.caption("O algoritmo analisou todas as cidades e ranqueou o grau de importância de cada pilar para a Taxa de Homicídios.")
+    st.caption("O algoritmo analisou os dados e ranqueou o grau de importância de cada pilar para a Taxa de Homicídios.")
 
-    # Treinando o Modelo
+    # 1. Separando as Variáveis
     X = df_ml[pilares]
     y = df_ml['Taxa_Homicidios_100k']
 
-    modelo_rf = RandomForestRegressor(n_estimators=100, random_state=42)
-    modelo_rf.fit(X, y)
+    # 2. O SEGREDO DO ML REAL: Dividir em Treino (80%) e Teste (20%)
+    from sklearn.model_selection import train_test_split
+    X_treino, X_teste, y_treino, y_teste = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Pegando as previsões da IA para comparar com a realidade
-    y_previsto = modelo_rf.predict(X)
+    # 3. Treinando o Modelo apenas com os dados de treino
+    modelo_rf = RandomForestRegressor(n_estimators=100, random_state=42)
+    modelo_rf.fit(X_treino, y_treino)
+
+    # 4. Fazendo a prova com os dados que a IA nunca viu (Teste)
+    y_previsto = modelo_rf.predict(X_teste)
     
-    # Calculando a Nota de Aprendizado (R²)
+    # Calculando a Nota de Aprendizado REAL (R²)
     from sklearn.metrics import r2_score
-    acuracia = r2_score(y, y_previsto) * 100
+    acuracia = r2_score(y_teste, y_previsto) * 100
 
     c_grafico, c_metricas = st.columns([2, 1])
 
     with c_grafico:
-        # Gráfico de Barras dos Pesos (O que já tínhamos feito)
         importancias = modelo_rf.feature_importances_
         df_importancia = pd.DataFrame({'Pilar': pilares, 'Impacto (%)': importancias * 100}).sort_values(by='Impacto (%)', ascending=True)
         
@@ -80,16 +84,17 @@ with tab_ia:
         st.plotly_chart(fig_ia, use_container_width=True, theme="streamlit")
 
     with c_metricas:
-        # 1. Métrica de Confiabilidade
         st.markdown("#### 🧠 Desempenho da IA")
-        st.metric("Confiabilidade do Modelo (R²)", f"{acuracia:.1f}%")
-        st.caption("Um R² alto indica que a IA conseguiu aprender os padrões reais entre a gestão e a violência.")
+        # Se a nota for negativa (pode acontecer se os dados não tiverem padrão claro no recorte), mostramos 0
+        nota_exibicao = max(acuracia, 0)
+        st.metric("Poder de Previsão (R²)", f"{nota_exibicao:.1f}%")
+        st.caption("Percentual de variação da violência que os pilares da gestão conseguem explicar em cidades não vistas no treinamento.")
         st.divider()
         
-        # 2. Gráfico de Dispersão: Real vs Previsto (A Prova do Aprendizado)
-        df_prova = pd.DataFrame({'Real': y, 'Previsto': y_previsto})
-        fig_prova = px.scatter(df_prova, x='Real', y='Previsto', opacity=0.6, color_discrete_sequence=['#F59E0B'], title="Real vs Previsto")
-        # Linha perfeita (onde a IA acerta na mosca)
+        # Gráfico Real vs Previsto com os dados de TESTE
+        df_prova = pd.DataFrame({'Real': y_teste, 'Previsto': y_previsto})
+        fig_prova = px.scatter(df_prova, x='Real', y='Previsto', opacity=0.6, color_discrete_sequence=['#F59E0B'], title="Cenário Real vs Previsão")
+        
         max_val = max(df_prova['Real'].max(), df_prova['Previsto'].max())
         fig_prova.add_shape(type="line", x0=0, y0=0, x1=max_val, y1=max_val, line=dict(color="white", dash="dot"))
         
